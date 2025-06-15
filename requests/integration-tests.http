@@ -1,0 +1,329 @@
+### ThreadPilot Integration Tests
+### Tests the complete workflow between Vehicle and Insurance services
+
+### Environment Configuration
+@vehicleBaseUrl_local = http://localhost:7071
+@insuranceBaseUrl_local = http://localhost:7072
+@vehicleBaseUrl_dev = https://threadpilot-vehicle-dev.azurewebsites.net
+@insuranceBaseUrl_dev = https://threadpilot-insurance-dev.azurewebsites.net
+
+### Test Data
+@personalId = 19900101-1234
+@registration = ABC123
+
+### =============================================================================
+### COMPLETE INTEGRATION WORKFLOW
+### =============================================================================
+
+### Step 1: Get Vehicle Information Directly
+GET {{vehicleBaseUrl_local}}/api/vehicles/{{registration}}
+Accept: application/json
+
+###
+
+### Step 2: Get Insurance Information (includes vehicle data via integration)
+GET {{insuranceBaseUrl_local}}/api/insurances/{{personalId}}
+Accept: application/json
+
+###
+
+### =============================================================================
+### INTEGRATION VALIDATION
+### =============================================================================
+
+### Verify Vehicle Service Data Consistency
+### Get vehicle ABC123 directly from Vehicle Service
+GET {{vehicleBaseUrl_local}}/api/vehicles/ABC123
+Accept: application/json
+
+###
+
+### Get the same vehicle data through Insurance Service integration
+### Should include the same vehicle details in the car insurance
+GET {{insuranceBaseUrl_local}}/api/insurances/19900101-1234
+Accept: application/json
+
+###
+
+### =============================================================================
+### CROSS-SERVICE DATA VALIDATION
+### =============================================================================
+
+### Test Vehicle XYZ789 - Direct call
+GET {{vehicleBaseUrl_local}}/api/vehicles/XYZ789
+Accept: application/json
+
+###
+
+### Test Vehicle XYZ789 - Through Insurance Service
+GET {{insuranceBaseUrl_local}}/api/insurances/19850515-5678
+Accept: application/json
+
+###
+
+### Test Vehicle DEF456 - Direct call
+GET {{vehicleBaseUrl_local}}/api/vehicles/DEF456
+Accept: application/json
+
+###
+
+### Test Vehicle DEF456 - Through Insurance Service
+### Note: This person (19750225-9012) only has pet insurance, no car insurance
+GET {{insuranceBaseUrl_local}}/api/insurances/19750225-9012
+Accept: application/json
+
+###
+
+### =============================================================================
+### ERROR SCENARIOS - INTEGRATION FAILURE SIMULATION
+### =============================================================================
+
+### Test 1: Valid vehicle through Vehicle Service
+GET {{vehicleBaseUrl_local}}/api/vehicles/ABC123
+Accept: application/json
+
+###
+
+### Test 2: Request insurance that should include vehicle data
+### If Vehicle Service is down, this should still return insurance data
+### but without vehicle information (graceful degradation)
+GET {{insuranceBaseUrl_local}}/api/insurances/19900101-1234
+Accept: application/json
+
+###
+
+### =============================================================================
+### SERVICE DEPENDENCY TESTING
+### =============================================================================
+
+### Insurance Service with Car Insurance (depends on Vehicle Service)
+GET {{insuranceBaseUrl_local}}/api/insurances/19900101-1234
+Accept: application/json
+
+###
+
+### Insurance Service with Pet Insurance Only (no Vehicle Service dependency)
+GET {{insuranceBaseUrl_local}}/api/insurances/19750225-9012
+Accept: application/json
+
+###
+
+### =============================================================================
+### DATA CONSISTENCY VERIFICATION
+### =============================================================================
+
+### Person 19900101-1234 should own vehicle ABC123
+### Step 1: Check vehicle owner
+GET {{vehicleBaseUrl_local}}/api/vehicles/ABC123
+Accept: application/json
+
+###
+
+### Step 2: Check person's insurance (should include ABC123)
+GET {{insuranceBaseUrl_local}}/api/insurances/19900101-1234
+Accept: application/json
+
+###
+
+### Person 19850515-5678 should own vehicle XYZ789
+### Step 1: Check vehicle owner
+GET {{vehicleBaseUrl_local}}/api/vehicles/XYZ789
+Accept: application/json
+
+###
+
+### Step 2: Check person's insurance (should include XYZ789)
+GET {{insuranceBaseUrl_local}}/api/insurances/19850515-5678
+Accept: application/json
+
+###
+
+### =============================================================================
+### PERFORMANCE TESTING - INTEGRATION OVERHEAD
+### =============================================================================
+
+### Baseline: Direct Vehicle Service call
+GET {{vehicleBaseUrl_local}}/api/vehicles/ABC123
+Accept: application/json
+
+###
+
+### Comparison: Insurance Service call (includes Vehicle Service integration)
+GET {{insuranceBaseUrl_local}}/api/insurances/19900101-1234
+Accept: application/json
+
+###
+
+### Multiple integration calls to test performance
+GET {{insuranceBaseUrl_local}}/api/insurances/19900101-1234
+Accept: application/json
+
+###
+
+GET {{insuranceBaseUrl_local}}/api/insurances/19850515-5678
+Accept: application/json
+
+###
+
+GET {{insuranceBaseUrl_local}}/api/insurances/19900101-1234
+Accept: application/json
+
+###
+
+### =============================================================================
+### DEVELOPMENT ENVIRONMENT INTEGRATION TESTS
+### =============================================================================
+
+### Dev Environment - Vehicle Service
+GET {{vehicleBaseUrl_dev}}/api/vehicles/ABC123
+Accept: application/json
+
+###
+
+### Dev Environment - Insurance Service (with integration)
+GET {{insuranceBaseUrl_dev}}/api/insurances/19900101-1234
+Accept: application/json
+
+###
+
+### =============================================================================
+### ERROR HANDLING - INVALID CROSS-REFERENCES
+### =============================================================================
+
+### Test vehicle that doesn't exist but is referenced in insurance
+### (This tests graceful degradation)
+GET {{vehicleBaseUrl_local}}/api/vehicles/NONEXISTENT123
+Accept: application/json
+
+###
+
+### Test insurance for person who might have invalid vehicle reference
+### Should still return insurance data even if vehicle lookup fails
+GET {{insuranceBaseUrl_local}}/api/insurances/19900101-1234
+Accept: application/json
+
+###
+
+### =============================================================================
+### WORKFLOW SCENARIOS
+### =============================================================================
+
+### Scenario 1: New Customer Lookup
+### Step 1: Check if customer exists (by getting their insurance)
+GET {{insuranceBaseUrl_local}}/api/insurances/19900101-1234
+Accept: application/json
+
+###
+
+### Step 2: If customer has car insurance, get detailed vehicle info
+GET {{vehicleBaseUrl_local}}/api/vehicles/ABC123
+Accept: application/json
+
+###
+
+### Scenario 2: Vehicle-focused Lookup
+### Step 1: Get vehicle information
+GET {{vehicleBaseUrl_local}}/api/vehicles/XYZ789
+Accept: application/json
+
+###
+
+### Step 2: Get owner's insurance information
+GET {{insuranceBaseUrl_local}}/api/insurances/19850515-5678
+Accept: application/json
+
+###
+
+### =============================================================================
+### BULK DATA TESTING
+### =============================================================================
+
+### Get all available customers' insurance data
+GET {{insuranceBaseUrl_local}}/api/insurances/19900101-1234
+Accept: application/json
+
+###
+
+GET {{insuranceBaseUrl_local}}/api/insurances/19850515-5678
+Accept: application/json
+
+###
+
+GET {{insuranceBaseUrl_local}}/api/insurances/19750225-9012
+Accept: application/json
+
+###
+
+### Get all available vehicles
+GET {{vehicleBaseUrl_local}}/api/vehicles/ABC123
+Accept: application/json
+
+###
+
+GET {{vehicleBaseUrl_local}}/api/vehicles/XYZ789
+Accept: application/json
+
+###
+
+GET {{vehicleBaseUrl_local}}/api/vehicles/DEF456
+Accept: application/json
+
+###
+
+### =============================================================================
+### SERVICE HEALTH CHECK - INTEGRATION
+### =============================================================================
+
+### Health Check: Both services operational
+### 1. Vehicle Service health
+GET {{vehicleBaseUrl_local}}/api/vehicles/ABC123
+Accept: application/json
+
+###
+
+### 2. Insurance Service health (basic)
+GET {{insuranceBaseUrl_local}}/api/insurances/19750225-9012
+Accept: application/json
+
+###
+
+### 3. Integration health (Insurance → Vehicle)
+GET {{insuranceBaseUrl_local}}/api/insurances/19900101-1234
+Accept: application/json
+
+###
+
+### =============================================================================
+### CONCURRENT TESTING
+### =============================================================================
+
+### Concurrent requests to test service stability
+GET {{vehicleBaseUrl_local}}/api/vehicles/ABC123
+Accept: application/json
+
+###
+
+GET {{insuranceBaseUrl_local}}/api/insurances/19900101-1234
+Accept: application/json
+
+###
+
+GET {{vehicleBaseUrl_local}}/api/vehicles/XYZ789
+Accept: application/json
+
+###
+
+GET {{insuranceBaseUrl_local}}/api/insurances/19850515-5678
+Accept: application/json
+
+###
+
+GET {{vehicleBaseUrl_local}}/api/vehicles/DEF456
+Accept: application/json
+
+###
+
+GET {{insuranceBaseUrl_local}}/api/insurances/19750225-9012
+Accept: application/json
+
+###

@@ -1,0 +1,329 @@
+### ThreadPilot Insurance Service API Tests
+### Base URLs for different environments
+
+@baseUrl_local = http://localhost:7246
+@baseUrl_dev = https://threadpilot-insurance-dev.azurewebsites.net
+@baseUrl_prod = https://threadpilot-insurance-prod.azurewebsites.net
+
+### Variables for test data
+@validPersonalId1 = 19900101-1234
+@validPersonalId2 = 19850515-5678
+@validPersonalId3 = 19750225-9012
+@invalidPersonalId = 00000000-0000
+@invalidFormatId1 = 12345
+@invalidFormatId2 = 1990-01-01-1234
+@invalidFormatId3 = 19900101
+@emptyPersonalId = 
+
+### =============================================================================
+### SUCCESSFUL REQUESTS
+### =============================================================================
+
+### Get Insurance - Valid Personal ID with Car and Health Insurance
+### Expected: Car insurance (ABC123 Volvo XC90) + Health insurance = $50/month
+GET {{baseUrl_local}}/api/insurances/{{validPersonalId1}}
+Accept: application/json
+
+###
+
+### Get Insurance - Valid Personal ID with Car, Pet, and Health Insurance
+### Expected: Car insurance (XYZ789 Tesla) + Pet + Health = $60/month
+GET {{baseUrl_local}}/api/insurances/{{validPersonalId2}}
+Accept: application/json
+
+###
+
+### Get Insurance - Valid Personal ID with Pet Insurance Only
+### Expected: Pet insurance only = $10/month
+GET {{baseUrl_local}}/api/insurances/{{validPersonalId3}}
+Accept: application/json
+
+###
+
+### =============================================================================
+### ERROR SCENARIOS - INVALID FORMAT
+### =============================================================================
+
+### Get Insurance - Invalid Personal ID Format (numeric only)
+GET {{baseUrl_local}}/api/insurances/{{invalidFormatId1}}
+Accept: application/json
+
+###
+
+### Get Insurance - Invalid Personal ID Format (wrong pattern)
+GET {{baseUrl_local}}/api/insurances/{{invalidFormatId2}}
+Accept: application/json
+
+###
+
+### Get Insurance - Invalid Personal ID Format (incomplete)
+GET {{baseUrl_local}}/api/insurances/{{invalidFormatId3}}
+Accept: application/json
+
+###
+
+### Get Insurance - Empty Personal ID (400 Bad Request)
+GET {{baseUrl_local}}/api/insurances/{{emptyPersonalId}}
+Accept: application/json
+
+###
+
+### =============================================================================
+### ERROR SCENARIOS - NOT FOUND
+### =============================================================================
+
+### Get Insurance - Valid Format but No Insurance Found
+GET {{baseUrl_local}}/api/insurances/{{invalidPersonalId}}
+Accept: application/json
+
+###
+
+### Get Insurance - Non-existent Personal ID
+GET {{baseUrl_local}}/api/insurances/19991231-9999
+Accept: application/json
+
+###
+
+### =============================================================================
+### INTEGRATION TESTING (Vehicle Service Integration)
+### =============================================================================
+
+### Get Insurance - Test Vehicle Service Integration
+### This should include vehicle details for car insurance
+GET {{baseUrl_local}}/api/insurances/{{validPersonalId1}}
+Accept: application/json
+
+###
+
+### Get Insurance - Test Multiple Car Insurances
+### This person has car insurance with vehicle XYZ789
+GET {{baseUrl_local}}/api/insurances/{{validPersonalId2}}
+Accept: application/json
+
+###
+
+### Get Insurance - Test No Car Insurance (No Vehicle Service Call)
+### This person only has pet insurance, so no vehicle service integration
+GET {{baseUrl_local}}/api/insurances/{{validPersonalId3}}
+Accept: application/json
+
+###
+
+### =============================================================================
+### DEVELOPMENT ENVIRONMENT TESTS
+### =============================================================================
+
+### Get Insurance - Dev Environment - Valid Personal ID
+GET {{baseUrl_dev}}/api/insurances/{{validPersonalId1}}
+Accept: application/json
+
+###
+
+### Get Insurance - Dev Environment - Invalid Format
+GET {{baseUrl_dev}}/api/insurances/{{invalidFormatId1}}
+Accept: application/json
+
+###
+
+### Get Insurance - Dev Environment - Not Found
+GET {{baseUrl_dev}}/api/insurances/{{invalidPersonalId}}
+Accept: application/json
+
+###
+
+### =============================================================================
+### PRODUCTION ENVIRONMENT TESTS (Uncomment when needed)
+### =============================================================================
+
+### Get Insurance - Prod Environment - Valid Personal ID
+# GET {{baseUrl_prod}}/api/insurances/{{validPersonalId1}}
+# Accept: application/json
+
+###
+
+### Get Insurance - Prod Environment - Invalid Format
+# GET {{baseUrl_prod}}/api/insurances/{{invalidFormatId1}}
+# Accept: application/json
+
+###
+
+### =============================================================================
+### EDGE CASES AND SPECIAL SCENARIOS
+### =============================================================================
+
+### Personal ID with URL encoding
+GET {{baseUrl_local}}/api/insurances/19900101%2D1234
+Accept: application/json
+
+###
+
+### Future date Personal ID (valid format)
+GET {{baseUrl_local}}/api/insurances/20301231-1234
+Accept: application/json
+
+###
+
+### Very old date Personal ID (valid format)
+GET {{baseUrl_local}}/api/insurances/19000101-1234
+Accept: application/json
+
+###
+
+### =============================================================================
+### LOAD TESTING
+### =============================================================================
+
+### Load Test - Multiple requests to same endpoint
+GET {{baseUrl_local}}/api/insurances/{{validPersonalId1}}
+Accept: application/json
+
+###
+
+GET {{baseUrl_local}}/api/insurances/{{validPersonalId2}}
+Accept: application/json
+
+###
+
+GET {{baseUrl_local}}/api/insurances/{{validPersonalId3}}
+Accept: application/json
+
+###
+
+GET {{baseUrl_local}}/api/insurances/{{validPersonalId1}}
+Accept: application/json
+
+###
+
+GET {{baseUrl_local}}/api/insurances/{{validPersonalId2}}
+Accept: application/json
+
+###
+
+### =============================================================================
+### HEADERS AND CONTENT TYPE TESTS
+### =============================================================================
+
+### Request with custom headers
+GET {{baseUrl_local}}/api/insurances/{{validPersonalId1}}
+Accept: application/json
+User-Agent: ThreadPilot-Test-Client/1.0
+X-Request-ID: test-{{$randomUuid}}
+X-Correlation-ID: insurance-test-{{$timestamp}}
+
+###
+
+### Request with XML Accept header (should still return JSON)
+GET {{baseUrl_local}}/api/insurances/{{validPersonalId1}}
+Accept: application/xml
+
+###
+
+### Request with no Accept header
+GET {{baseUrl_local}}/api/insurances/{{validPersonalId1}}
+
+###
+
+### =============================================================================
+### PERFORMANCE TESTING
+### =============================================================================
+
+### Performance Test - Measure response time (includes Vehicle Service call)
+GET {{baseUrl_local}}/api/insurances/{{validPersonalId1}}
+Accept: application/json
+
+###
+
+### Performance Test - No Vehicle Service calls (Pet insurance only)
+GET {{baseUrl_local}}/api/insurances/{{validPersonalId3}}
+Accept: application/json
+
+###
+
+### Performance Test - Cold start simulation
+GET {{baseUrl_local}}/api/insurances/{{validPersonalId1}}
+Accept: application/json
+
+###
+
+### =============================================================================
+### CORS TESTING (if applicable)
+### =============================================================================
+
+### CORS Preflight request
+OPTIONS {{baseUrl_local}}/api/insurances/{{validPersonalId1}}
+Origin: https://localhost:3000
+Access-Control-Request-Method: GET
+Access-Control-Request-Headers: Content-Type
+
+###
+
+### =============================================================================
+### ERROR SIMULATION - Vehicle Service Integration
+### =============================================================================
+
+### Test graceful degradation when Vehicle Service might be down
+### (This requires Vehicle Service to be stopped for realistic testing)
+GET {{baseUrl_local}}/api/insurances/{{validPersonalId1}}
+Accept: application/json
+
+###
+
+### =============================================================================
+### HEALTH CHECKS
+### =============================================================================
+
+### Health Check - Basic functionality
+GET {{baseUrl_local}}/api/insurances/{{validPersonalId1}}
+Accept: application/json
+
+###
+
+### Health Check - Integration with Vehicle Service
+### Should return car insurance with vehicle details
+GET {{baseUrl_local}}/api/insurances/{{validPersonalId1}}
+Accept: application/json
+
+###
+
+### Health Check - Service without Vehicle Service dependency
+### Should return pet insurance without any vehicle service calls
+GET {{baseUrl_local}}/api/insurances/{{validPersonalId3}}
+Accept: application/json
+
+###
+
+### =============================================================================
+### DATA VALIDATION TESTS
+### =============================================================================
+
+### Test Personal ID Pattern Validation - Valid Formats
+GET {{baseUrl_local}}/api/insurances/19900101-1234
+Accept: application/json
+
+###
+
+GET {{baseUrl_local}}/api/insurances/20001231-9999
+Accept: application/json
+
+###
+
+### Test Personal ID Pattern Validation - Invalid Formats
+GET {{baseUrl_local}}/api/insurances/1990-1-1-1234
+Accept: application/json
+
+###
+
+GET {{baseUrl_local}}/api/insurances/19900101_1234
+Accept: application/json
+
+###
+
+GET {{baseUrl_local}}/api/insurances/19900101-12345
+Accept: application/json
+
+###
+
+GET {{baseUrl_local}}/api/insurances/199001011234
+Accept: application/json
+
+###

@@ -1,0 +1,232 @@
+trigger:
+  branches:
+    include:
+    - main
+    - develop
+  paths:
+    exclude:
+    - README.md
+    - docs/*
+
+pool:
+  vmImage: 'ubuntu-latest'
+
+variables:
+  buildConfiguration: 'Release'
+  dotnetVersion: '9.x'
+
+stages:
+- stage: Build
+  displayName: 'Build and Test'
+  jobs:
+  - job: BuildAndTest
+    displayName: 'Build Solution and Run Tests'
+    steps:
+    - task: UseDotNet@2
+      displayName: 'Install .NET SDK'
+      inputs:
+        version: $(dotnetVersion)
+        includePreviewVersions: true
+
+    - task: DotNetCoreCLI@2
+      displayName: 'Restore dependencies'
+      inputs:
+        command: 'restore'
+        projects: '**/*.csproj'
+
+    - task: DotNetCoreCLI@2
+      displayName: 'Build solution'
+      inputs:
+        command: 'build'
+        projects: 'src/api/ThreadPilot.sln'
+        arguments: '--configuration $(buildConfiguration) --no-restore'
+
+    - task: DotNetCoreCLI@2
+      displayName: 'Run Vehicle Service tests'
+      inputs:
+        command: 'test'
+        projects: 'tests/ThreadPilot.Vehicle.Tests/ThreadPilot.Vehicle.Tests.csproj'
+        arguments: '--configuration $(buildConfiguration) --no-build --logger trx --collect:"Code Coverage"'
+        publishTestResults: true
+
+    - task: DotNetCoreCLI@2
+      displayName: 'Run Insurance Service tests'
+      inputs:
+        command: 'test'
+        projects: 'tests/ThreadPilot.Personal.Tests/ThreadPilot.Personal.Tests.csproj'
+        arguments: '--configuration $(buildConfiguration) --no-build --logger trx --collect:"Code Coverage"'
+        publishTestResults: true
+
+    - task: PublishTestResults@2
+      displayName: 'Publish test results'
+      inputs:
+        testResultsFormat: 'VSTest'
+        testResultsFiles: '**/*.trx'
+        mergeTestResults: true
+
+    - task: DotNetCoreCLI@2
+      displayName: 'Publish Vehicle Service'
+      inputs:
+        command: 'publish'
+        projects: 'src/api/ThreadPilot.Vehicle/ThreadPilot.Vehicle.csproj'
+        arguments: '--configuration $(buildConfiguration) --output $(Build.ArtifactStagingDirectory)/vehicle'
+        zipAfterPublish: true
+
+    - task: DotNetCoreCLI@2
+      displayName: 'Publish Insurance Service'
+      inputs:
+        command: 'publish'
+        projects: 'src/api/ThreadPilot.Personal/ThreadPilot.Personal.csproj'
+        arguments: '--configuration $(buildConfiguration) --output $(Build.ArtifactStagingDirectory)/insurance'
+        zipAfterPublish: true
+
+    - task: CopyFiles@2
+      displayName: 'Copy Bicep files'
+      inputs:
+        SourceFolder: 'iac'
+        Contents: '**/*.bicep*'
+        TargetFolder: '$(Build.ArtifactStagingDirectory)/iac'
+
+    - task: PublishBuildArtifacts@1
+      displayName: 'Publish artifacts'
+      inputs:
+        pathToPublish: '$(Build.ArtifactStagingDirectory)'
+        artifactName: 'drop'
+
+- stage: DeployDev
+  displayName: 'Deploy to Development'
+  dependsOn: Build
+  condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/develop'))
+  variables:
+    resourceGroupName: 'rg-threadpilot-dev'
+    environment: 'dev'
+  jobs:
+  - deployment: DeployInfrastructureDev
+    displayName: 'Deploy Infrastructure to Dev'
+    environment: 'Development'
+    strategy:
+      runOnce:
+        deploy:
+          steps:
+          - task: AzureResourceManagerTemplateDeployment@3
+            displayName: 'Deploy Vehicle Service Infrastructure'
+            inputs:
+              deploymentScope: 'Resource Group'
+              azureResourceManagerConnection: 'Azure-Dev-Subscription'
+              subscriptionId: '$(Azure.SubscriptionId)'
+              action: 'Create Or Update Resource Group'
+              resourceGroupName: '$(resourceGroupName)'
+              location: 'East US'
+              templateLocation: 'Linked artifact'
+              csmFile: '$(Pipeline.Workspace)/drop/iac/vehicle-service.bicep'
+              csmParametersFile: '$(Pipeline.Workspace)/drop/iac/vehicle-service.dev.bicepparam'
+              deploymentMode: 'Incremental'
+              deploymentName: 'deploy-vehicle-$(Build.BuildId)'
+
+          - task: AzureResourceManagerTemplateDeployment@3
+            displayName: 'Deploy Insurance Service Infrastructure'
+            inputs:
+              deploymentScope: 'Resource Group'
+              azureResourceManagerConnection: 'Azure-Dev-Subscription'
+              subscriptionId: '$(Azure.SubscriptionId)'
+              action: 'Create Or Update Resource Group'
+              resourceGroupName: '$(resourceGroupName)'
+              location: 'East US'
+              templateLocation: 'Linked artifact'
+              csmFile: '$(Pipeline.Workspace)/drop/iac/insurance-service.bicep'
+              csmParametersFile: '$(Pipeline.Workspace)/drop/iac/insurance-service.dev.bicepparam'
+              deploymentMode: 'Incremental'
+              deploymentName: 'deploy-insurance-$(Build.BuildId)'
+
+  - deployment: DeployApplicationsDev
+    displayName: 'Deploy Applications to Dev'
+    dependsOn: DeployInfrastructureDev
+    environment: 'Development'
+    strategy:
+      runOnce:
+        deploy:
+          steps:
+          - task: AzureFunctionApp@1
+            displayName: 'Deploy Vehicle Service to Dev'
+            inputs:
+              azureSubscription: 'Azure-Dev-Subscription'
+              appType: 'functionApp'
+              appName: 'threadpilot-vehicle-dev'
+              package: '$(Pipeline.Workspace)/drop/vehicle/*.zip'
+
+          - task: AzureFunctionApp@1
+            displayName: 'Deploy Insurance Service to Dev'
+            inputs:
+              azureSubscription: 'Azure-Dev-Subscription'
+              appType: 'functionApp'
+              appName: 'threadpilot-insurance-dev'
+              package: '$(Pipeline.Workspace)/drop/insurance/*.zip'
+
+- stage: DeployProd
+  displayName: 'Deploy to Production'
+  dependsOn: Build
+  condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/main'))
+  variables:
+    resourceGroupName: 'rg-threadpilot-prod'
+    environment: 'prod'
+  jobs:
+  - deployment: DeployInfrastructureProd
+    displayName: 'Deploy Infrastructure to Prod'
+    environment: 'Production'
+    strategy:
+      runOnce:
+        deploy:
+          steps:
+          - task: AzureResourceManagerTemplateDeployment@3
+            displayName: 'Deploy Vehicle Service Infrastructure'
+            inputs:
+              deploymentScope: 'Resource Group'
+              azureResourceManagerConnection: 'Azure-Prod-Subscription'
+              subscriptionId: '$(Azure.SubscriptionId)'
+              action: 'Create Or Update Resource Group'
+              resourceGroupName: '$(resourceGroupName)'
+              location: 'East US'
+              templateLocation: 'Linked artifact'
+              csmFile: '$(Pipeline.Workspace)/drop/iac/vehicle-service.bicep'
+              csmParametersFile: '$(Pipeline.Workspace)/drop/iac/vehicle-service.prod.bicepparam'
+              deploymentMode: 'Incremental'
+              deploymentName: 'deploy-vehicle-$(Build.BuildId)'
+
+          - task: AzureResourceManagerTemplateDeployment@3
+            displayName: 'Deploy Insurance Service Infrastructure'
+            inputs:
+              deploymentScope: 'Resource Group'
+              azureResourceManagerConnection: 'Azure-Prod-Subscription'
+              subscriptionId: '$(Azure.SubscriptionId)'
+              action: 'Create Or Update Resource Group'
+              resourceGroupName: '$(resourceGroupName)'
+              location: 'East US'
+              templateLocation: 'Linked artifact'
+              csmFile: '$(Pipeline.Workspace)/drop/iac/insurance-service.bicep'
+              csmParametersFile: '$(Pipeline.Workspace)/drop/iac/insurance-service.prod.bicepparam'
+              deploymentMode: 'Incremental'
+              deploymentName: 'deploy-insurance-$(Build.BuildId)'
+
+  - deployment: DeployApplicationsProd
+    displayName: 'Deploy Applications to Prod'
+    dependsOn: DeployInfrastructureProd
+    environment: 'Production'
+    strategy:
+      runOnce:
+        deploy:
+          steps:
+          - task: AzureFunctionApp@1
+            displayName: 'Deploy Vehicle Service to Prod'
+            inputs:
+              azureSubscription: 'Azure-Prod-Subscription'
+              appType: 'functionApp'
+              appName: 'threadpilot-vehicle-prod'
+              package: '$(Pipeline.Workspace)/drop/vehicle/*.zip'
+
+          - task: AzureFunctionApp@1
+            displayName: 'Deploy Insurance Service to Prod'
+            inputs:
+              azureSubscription: 'Azure-Prod-Subscription'
+              appType: 'functionApp'
+              appName: 'threadpilot-insurance-prod'
+              package: '$(Pipeline.Workspace)/drop/insurance/*.zip'

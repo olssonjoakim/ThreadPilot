@@ -1,0 +1,221 @@
+### ThreadPilot Vehicle Service API Tests
+### Base URLs for different environments
+
+@baseUrl_local = http://localhost:7041
+@baseUrl_dev = https://threadpilot-vehicle-dev.azurewebsites.net
+@baseUrl_prod = https://threadpilot-vehicle-prod.azurewebsites.net
+
+### Variables for test data
+@validRegistration1 = ABC123
+@validRegistration2 = XYZ789
+@validRegistration3 = DEF456
+@invalidRegistration = INVALID123
+@registrationWithSpaces = ABC 123
+@lowercaseRegistration = abc123
+
+### =============================================================================
+### SUCCESSFUL REQUESTS
+### =============================================================================
+
+### Get Vehicle - Valid Registration ABC123 (Volvo XC90)
+GET {{baseUrl_local}}/api/vehicles/{{validRegistration1}}
+Accept: application/json
+
+###
+
+### Get Vehicle - Valid Registration XYZ789 (Tesla Model 3)
+GET {{baseUrl_local}}/api/vehicles/{{validRegistration2}}
+Accept: application/json
+
+###
+
+### Get Vehicle - Valid Registration DEF456 (BMW 320i)
+GET {{baseUrl_local}}/api/vehicles/{{validRegistration3}}
+Accept: application/json
+
+###
+
+### Get Vehicle - Registration with spaces (should normalize)
+GET {{baseUrl_local}}/api/vehicles/{{registrationWithSpaces}}
+Accept: application/json
+
+###
+
+### Get Vehicle - Lowercase registration (should be case-insensitive)
+GET {{baseUrl_local}}/api/vehicles/{{lowercaseRegistration}}
+Accept: application/json
+
+###
+
+### =============================================================================
+### ERROR SCENARIOS
+### =============================================================================
+
+### Get Vehicle - Invalid Registration (404 Not Found)
+GET {{baseUrl_local}}/api/vehicles/{{invalidRegistration}}
+Accept: application/json
+
+###
+
+### Get Vehicle - Empty Registration (404 Not Found - route not matched)
+GET {{baseUrl_local}}/api/vehicles/
+Accept: application/json
+
+###
+
+### Get Vehicle - Malformed URL (404 Not Found)
+GET {{baseUrl_local}}/api/vehicles
+Accept: application/json
+
+###
+
+### =============================================================================
+### DEVELOPMENT ENVIRONMENT TESTS
+### =============================================================================
+
+### Get Vehicle - Dev Environment - Valid Registration
+GET {{baseUrl_dev}}/api/vehicles/{{validRegistration1}}
+Accept: application/json
+
+###
+
+### Get Vehicle - Dev Environment - Invalid Registration
+GET {{baseUrl_dev}}/api/vehicles/{{invalidRegistration}}
+Accept: application/json
+
+###
+
+### =============================================================================
+### PRODUCTION ENVIRONMENT TESTS (Uncomment when needed)
+### =============================================================================
+
+### Get Vehicle - Prod Environment - Valid Registration
+# GET {{baseUrl_prod}}/api/vehicles/{{validRegistration1}}
+# Accept: application/json
+
+###
+
+### Get Vehicle - Prod Environment - Invalid Registration
+# GET {{baseUrl_prod}}/api/vehicles/{{invalidRegistration}}
+# Accept: application/json
+
+###
+
+### =============================================================================
+### LOAD TESTING (Multiple requests)
+### =============================================================================
+
+### Load Test - Multiple valid registrations
+GET {{baseUrl_local}}/api/vehicles/ABC123
+Accept: application/json
+
+###
+
+GET {{baseUrl_local}}/api/vehicles/XYZ789
+Accept: application/json
+
+###
+
+GET {{baseUrl_local}}/api/vehicles/DEF456
+Accept: application/json
+
+###
+
+GET {{baseUrl_local}}/api/vehicles/ABC123
+Accept: application/json
+
+###
+
+GET {{baseUrl_local}}/api/vehicles/XYZ789
+Accept: application/json
+
+###
+
+### =============================================================================
+### EDGE CASES
+### =============================================================================
+
+### Special characters in registration
+GET {{baseUrl_local}}/api/vehicles/ABC-123
+Accept: application/json
+
+###
+
+### Numeric registration
+GET {{baseUrl_local}}/api/vehicles/123456
+Accept: application/json
+
+###
+
+### Very long registration number
+GET {{baseUrl_local}}/api/vehicles/VERYLONGREGISTRATIONNUMBER123456789
+Accept: application/json
+
+###
+
+### Registration with URL encoding
+GET {{baseUrl_local}}/api/vehicles/ABC%20123
+Accept: application/json
+
+###
+
+### =============================================================================
+### HEADERS AND CONTENT TYPE TESTS
+### =============================================================================
+
+### Request with custom headers
+GET {{baseUrl_local}}/api/vehicles/{{validRegistration1}}
+Accept: application/json
+User-Agent: ThreadPilot-Test-Client/1.0
+X-Request-ID: test-{{$randomUuid}}
+
+###
+
+### Request with XML Accept header (should still return JSON)
+GET {{baseUrl_local}}/api/vehicles/{{validRegistration1}}
+Accept: application/xml
+
+###
+
+### Request with no Accept header
+GET {{baseUrl_local}}/api/vehicles/{{validRegistration1}}
+
+###
+
+### =============================================================================
+### PERFORMANCE TESTING
+### =============================================================================
+
+### Performance Test - Measure response time
+GET {{baseUrl_local}}/api/vehicles/{{validRegistration1}}
+Accept: application/json
+
+###
+
+### Performance Test - Cold start simulation (after idle)
+GET {{baseUrl_local}}/api/vehicles/{{validRegistration1}}
+Accept: application/json
+
+###
+
+### =============================================================================
+### CORS TESTING (if applicable)
+### =============================================================================
+
+### CORS Preflight request
+OPTIONS {{baseUrl_local}}/api/vehicles/{{validRegistration1}}
+Origin: https://localhost:3000
+Access-Control-Request-Method: GET
+Access-Control-Request-Headers: Content-Type
+
+###
+
+### =============================================================================
+### HEALTH CHECK
+### =============================================================================
+
+### Health Check - Use known good vehicle
+GET {{baseUrl_local}}/api/vehicles/ABC123
+Accept: application/json
+
+###
