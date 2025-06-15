@@ -244,7 +244,7 @@ Comprehensive documentation is available in the `/docs` folder:
 
 ## Personal Reflection
 
-During the years I've worked with a few similar systems. 
+During the years I've worked with similar systems. ( short list )
 1. With Absolut Vodka, I was working on a large legacy platform based on containers running in the Cloud. Scaling and performance was an issue, so it was redesigned using Azure resources ( Azure Functions, web app, Cosmos DB etc ). A few of the services needed to communicate with other services so a solution of ServiceBus and Event Grid was implemented.
 2. With Espresso House, I have been working on a IAM platform that contains on a number of microservices. For example, this platform contains a aggregator function to call other services to aggregate data and pass along according to business rules. 
 3. With Espresso House, I have been working on a Organization platform that supports the complex organization of the business. A graph database was used for relations storage and a number of Azure Functions to manage both relations and the data. The platform contains a number of Azure Function, one for CRUD operations, a integration services that aggregates data to support external integrations and a long running process function to handle long running processes.

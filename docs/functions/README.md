@@ -392,9 +392,3 @@ func azure functionapp logstream threadpilot-vehicle-dev --verbose
 - **Unit Tests**: `tests/`
 - **Infrastructure**: `iac/`
 - **Pipeline**: `pipelines/azure-pipelines.yml`
-
-### Getting Help
-- Check Application Insights for errors and performance issues
-- Review Azure Function logs in the Azure Portal
-- Consult this documentation for API specifications
-- Contact the ThreadPilot Integration Team for support

@@ -314,14 +314,7 @@ func start --port 7071
 func azure functionapp logstream threadpilot-vehicle-dev
 ```
 
-## Support and Maintenance
-
 ### Code Location
 - **Source**: `src/api/ThreadPilot.Vehicle/`
 - **Tests**: `tests/ThreadPilot.Vehicle.Tests/`
 - **Infrastructure**: `iac/vehicle-service.bicep`
-
-### Contact Information
-- **Team**: ThreadPilot Integration Team
-- **Repository**: [ThreadPilot GitHub Repository]
-- **Documentation**: This document and inline code comments

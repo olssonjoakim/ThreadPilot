@@ -266,13 +266,6 @@ Currently, no official SDKs are provided. The APIs are standard REST APIs that c
 - **Python**: `requests`, `httpx`
 - **Java**: `OkHttp`, `Spring RestTemplate`
 
-## Support
-
-For API support:
-- Check [detailed function documentation](./functions/)
-- Review Application Insights for error details
-- Contact the ThreadPilot Integration Team
-
 ## OpenAPI Specification
 
 *Note: OpenAPI/Swagger documentation is not currently available but is recommended for future implementation.*

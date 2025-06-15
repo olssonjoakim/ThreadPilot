@@ -556,17 +556,10 @@ var circuitBreakerPolicy = Policy
         durationOfBreak: TimeSpan.FromSeconds(30));
 ```
 
-## Support and Maintenance
-
 ### Code Location
 - **Source**: `src/api/ThreadPilot.Personal/`
 - **Tests**: `tests/ThreadPilot.Personal.Tests/`
 - **Infrastructure**: `iac/insurance-service.bicep`
-
-### Contact Information
-- **Team**: ThreadPilot Integration Team
-- **Repository**: [ThreadPilot GitHub Repository]
-- **Documentation**: This document and inline code comments
 
 ### Related Documentation
 - [Vehicle Service Documentation](./vehicle-service.md)
